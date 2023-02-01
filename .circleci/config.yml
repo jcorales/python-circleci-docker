@@ -1,38 +1,26 @@
 version: 2.1
+
 orbs:
-  python: circleci/python@2.0.3
-  heroku: circleci/heroku@1.2.6
-
-jobs:
-  build_and_test: # this can be any name you choose
-    executor: python/default
-    steps:
-      - checkout
-      - python/install-packages:
-          pkg-manager: pip
-      - run:
-          name: Run tests
-          command: pip install -U pytest && python -m pytest
-      - persist_to_workspace:
-          root: ~/project
-          paths:
-            - .
-
-  deploy: # this can be any name you choose
-    executor: python/default
-    steps:
-      - attach_workspace:
-          at: ~/project
-      - heroku/deploy-via-git:
-          force: true # force push when pushing to the heroku remote, see: https://devcenter.heroku.com/articles/git
+  cimg: circleci/cimg@0.3.0
 
 workflows:
-  test_my_app:
+  main-wf:
     jobs:
-      - build_and_test
-      - deploy:
-          requires:
-            - build_and_test # only deploy if the build_and_test job has completed
+      - cimg/build-and-deploy:
+          name: "Staging"
+          docker-namespace: ccitest
+          docker-repository: python
+          publish-branch: test
           filters:
             branches:
-              only: main # only deploy when on main
+              ignore:
+                - main
+          context: cimg-publishing
+      - cimg/build-and-deploy:
+          name: "Deploy"
+          docker-repository: python
+          filters:
+            branches:
+              only:
+                - main
+          context: cimg-publishing
